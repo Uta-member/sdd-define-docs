@@ -1,0 +1,13 @@
+{
+  "name": "sdd-define-docs",
+  "owner": {
+    "name": "Uta Sugane"
+  },
+  "plugins": [
+    {
+      "name": "sdd",
+      "source": "./sdd-plugin",
+      "description": "SDD（仕様駆動開発）ワークフロー一式：機能サイクル用スキル、レビューゲート支援エージェント、スナップショット保護フック、CLAUDE.mdセットアップ"
+    }
+  ]
+}
