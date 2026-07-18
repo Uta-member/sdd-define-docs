@@ -10,10 +10,10 @@ description: SDDトレーサビリティの発見的チェック。.featureの@A
 ## 手順
 
 ### 1. 機械チェック（スクリプト）
-このSKILL.mdから見て `../../scripts/check-traceability.ps1` を実行する：
+このSKILL.mdから見て `../../scripts/check-traceability.sh` を実行する：
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File "<プラグインルート>/scripts/check-traceability.ps1"
+bash "<プラグインルート>/scripts/check-traceability.sh"
 ```
 
 出力される差分：

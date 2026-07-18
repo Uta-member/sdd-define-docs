@@ -13,6 +13,39 @@ Claude Code のセッション内で：
 
 （このリポジトリをGitHub等に置いた場合は `/plugin marketplace add <owner>/<repo>` でも可）
 
+### DevContainer / WSL の場合
+
+コンテナ内からは Windows 側のローカルパスが見えないので、**GitHub 経由で入れる**：
+
+```
+/plugin marketplace add Uta-member/sdd-define-docs
+/plugin install sdd@sdd-define-docs
+```
+
+コンテナを作り直すたびに手で打ちたくない場合は、対象プロジェクトの `.claude/settings.json` に書いておくと起動時に自動で解決される：
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "sdd-define-docs": {
+      "source": { "source": "github", "repo": "Uta-member/sdd-define-docs" }
+    }
+  },
+  "enabledPlugins": { "sdd@sdd-define-docs": true }
+}
+```
+
+コンテナ側の要件は `git` と `bash` のみ（`jq` があれば使うが必須ではない）。`.devcontainer/devcontainer.json` で Claude Code 自体を入れている場合は、その後段でこの設定が効く。
+
+プラグイン本体を編集しながら使いたい場合は、リポジトリをコンテナにマウントしてローカルパスで `marketplace add` してもよい：
+
+```jsonc
+// .devcontainer/devcontainer.json
+"mounts": [
+  "source=${localWorkspaceFolder}/../sdd-define-docs,target=/workspaces/sdd-define-docs,type=bind"
+]
+```
+
 インストール後、対象プロジェクトで一度だけ：
 
 ```
@@ -32,10 +65,10 @@ Claude Code のセッション内で：
 | 3. 実装タスク作成（廃棄可能） | `/sdd:tasks` |
 | 4. 実装 | `/sdd:implement` — 受入振る舞いを統合テストに吸収、`test_AC_xxx` 命名 |
 | 5. 受入テスト | `/sdd:accept` — エビデンス凍結・tasks.md削除・PR仕上げ |
-| トレーサビリティ（随時） | `/sdd:trace` ＋ `scripts/check-traceability.ps1` |
+| トレーサビリティ（随時） | `/sdd:trace` ＋ `scripts/check-traceability.sh` |
 | 現在仕様書の再生成（必要時） | `/sdd:regen` |
 | ゲート前セルフチェック | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
-| write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.ps1` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
+| write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
 
 ## 各プロジェクトに生まれる構造（/sdd:init 後）
 
@@ -55,6 +88,6 @@ docs/
 
 ## 注意
 
-- フック/スクリプトは **Windows PowerShell 前提**。macOS/Linux で使う場合は `powershell` を `pwsh`（PowerShell 7）に読み替えて `hooks/hooks.json` を修正すること。
+- フック/スクリプトは **POSIX sh + git のみに依存**。Windows / macOS / Linux / DevContainer で同じものが動く（Windows では Git 同梱の `bash` が使われる）。
 - フックは「デフォルトブランチに存在する＝マージ済み」をもって凍結と判定する。マージ前の同一ブランチ内では自由に手戻りできる（レビューゲート＝コミットポイントの方針どおり）。
 - 方法論そのものの根拠は壁打ちドキュメント 003〜008 を参照。
