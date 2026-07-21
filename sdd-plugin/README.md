@@ -64,10 +64,12 @@ Claude Code のセッション内で：
 | 2. 詳細設計 → 人間ゲート（軽め） | `/sdd:design` — 局所アーキ・ADR・ゲートで停止 |
 | 3. 実装タスク作成（廃棄可能） | `/sdd:tasks` |
 | 4. 実装 | `/sdd:implement` — 受入振る舞いを統合テストに吸収、`test_AC_xxx` 命名 |
+| 4b. テスト妥当性ゲート → 人間ゲート（軽め・ブロック） | `sdd-test-reviewer` エージェント — 実テストと.featureを突き合わせ、空虚なテスト・期待値の実装由来（curve-fitting）・網羅の穴を検出。生命線なので通過必須 |
 | 5. 受入テスト | `/sdd:accept` — エビデンス凍結・tasks.md削除・PR仕上げ |
 | トレーサビリティ（随時） | `/sdd:trace` ＋ `scripts/check-traceability.sh` |
 | 現在仕様書の再生成（必要時） | `/sdd:regen` |
-| ゲート前セルフチェック | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
+| ゲート前セルフチェック（要件/設計） | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
+| ゲート前セルフチェック（テスト妥当性） | `sdd-test-reviewer` エージェント（実テストを読む・実行しない。人間ゲートの代替ではない） |
 | write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
 
 ## 各プロジェクトに生まれる構造（/sdd:init 後）
