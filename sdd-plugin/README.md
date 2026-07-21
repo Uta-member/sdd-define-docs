@@ -13,14 +13,19 @@
 
 ## インストール（各プロジェクトで）
 
-Claude Code のセッション内で：
+Claude Code のセッション内で（GitHub 経由が基本）：
 
 ```
-/plugin marketplace add c:\Users\sugan\source\repos\sdd-define-docs
+/plugin marketplace add Uta-member/sdd-define-docs
 /plugin install sdd@sdd-define-docs
 ```
 
-（このリポジトリをGitHub等に置いた場合は `/plugin marketplace add <owner>/<repo>` でも可）
+ローカルにクローン済みのリポジトリから入れる場合は、`Uta-member/sdd-define-docs` の代わりにそのパスを指定する（環境依存の絶対パスをそのまま貼らないこと）：
+
+```
+/plugin marketplace add <path/to/sdd-define-docs>
+/plugin install sdd@sdd-define-docs
+```
 
 ### DevContainer / WSL の場合
 

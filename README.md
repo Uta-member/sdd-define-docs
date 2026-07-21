@@ -9,7 +9,9 @@ SDD（仕様駆動開発）方法論の定義ドキュメントと、それを�
 ## クイックスタート（別プロジェクトへの導入）
 
 ```
-/plugin marketplace add {to/path/sdd-define-docs}
+/plugin marketplace add Uta-member/sdd-define-docs
 /plugin install sdd@sdd-define-docs
 /sdd:init
 ```
+
+ローカルにクローン済みのリポジトリから入れる場合は `Uta-member/sdd-define-docs` の代わりにそのパスを指定する。詳細は [sdd-plugin/README.md](sdd-plugin/README.md) を参照。
