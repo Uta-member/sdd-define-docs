@@ -78,8 +78,8 @@ Claude Code のセッション内で：
 CLAUDE.md                       ← SDDルール節（マーカー管理・再実行で更新可）
 docs/
   architecture.md               ← living（唯一維持する散文）
-  adr/ADR-<n>-<slug>.md         ← 不変・supersedeで追記
-  units/<日付-スラッグ>/         ← 作業単位スナップショット
+  adr/ADR-<slug>-<n>-<title>.md ← 不変・supersedeで追記（slugで名前空間化）
+  units/<スラッグ>/              ← 作業単位スナップショット（開始日は requirements.md 冒頭に記録）
     requirements.md             ← REQ/AC定義（write-once）
     design.md                   ← 詳細設計（write-once）
     evidence.md                 ← 受入結果（write-once）

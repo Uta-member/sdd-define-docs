@@ -18,11 +18,11 @@ description: SDD（仕様駆動開発）をこのプロジェクトに導入す�
 
 | フレームワーク | 規約 |
 |---|---|
-| pytest | `def test_AC_012_card_payment_succeeds():` |
-| xUnit (.NET) | メソッド名 `AC_012_カード決済が成功する` または `[Fact(DisplayName = "AC-012 ...")]` |
-| Jest / Vitest | `it("AC-012 カード決済が成功する", ...)` |
-| JUnit 5 | `@DisplayName("AC-012 ...")` かメソッド名 `AC_012_...` |
-| Go testing | `func TestAC012_CardPaymentSucceeds(t *testing.T)` |
+| pytest | `def test_AC_checkout_3_card_payment_succeeds():` |
+| xUnit (.NET) | メソッド名 `AC_checkout_3_カード決済が成功する` または `[Fact(DisplayName = "AC-checkout-3 ...")]` |
+| Jest / Vitest | `it("AC-checkout-3 カード決済が成功する", ...)` |
+| JUnit 5 | `@DisplayName("AC-checkout-3 ...")` かメソッド名 `AC_checkout_3_...` |
+| Go testing | `func TestAC_checkout_3_CardPaymentSucceeds(t *testing.T)` |
 
 `{DOCS_DIR}` は原則 `docs`。既存の文書ディレクトリ規約があればそちらに合わせる。
 

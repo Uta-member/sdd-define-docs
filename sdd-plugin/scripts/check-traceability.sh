@@ -27,7 +27,8 @@ printf '%s\n' "$tracked" | while IFS= read -r f; do
 
     case "$f" in
         *.feature)
-            grep -oE '@AC-[0-9]+' "$f" 2>/dev/null \
+            # 名前空間付きID @AC-<slug>-<n>（slug=小文字英数字）。IDは "<slug>-<n>"。
+            grep -oE '@AC-[a-z0-9]+-[0-9]+' "$f" 2>/dev/null \
                 | sed 's/^@AC-//' \
                 | while IFS= read -r id; do printf '%s %s\n' "$id" "$f"; done >> "$feature_list"
             continue
@@ -36,8 +37,9 @@ printf '%s\n' "$tracked" | while IFS= read -r f; do
 
     # テストらしきファイルかどうか（元の PowerShell 版と同じ判定）
     if printf '%s' "$f" | grep -Eq '(^|/)(tests?|spec|__tests__)(/|\.)|(test|spec|Tests?)\.[a-z]+$|(^|/)test_[^/]+$'; then
-        grep -oE 'AC[-_][0-9]+' "$f" 2>/dev/null \
-            | sed 's/^AC[-_]//' \
+        # テスト名/コメントでは AC-<slug>-<n> または AC_<slug>_<n>。区切りを '-' に正規化して比較。
+        grep -oE 'AC[-_][a-z0-9]+[-_][0-9]+' "$f" 2>/dev/null \
+            | sed 's/^AC[-_]//' | tr '_' '-' \
             | while IFS= read -r id; do printf '%s %s\n' "$id" "$f"; done >> "$test_list"
     fi
 done
@@ -83,3 +85,22 @@ report "【重大】テストの無いAC（回帰の穴の候補。統合テス�
 echo ''
 report "【注意】.feature に存在しないACを参照するテスト（タグ漏れ or 廃止済みIDの残骸）:" \
        ".feature に無いACを指すテスト: なし" "$test_ids" "$feature_ids" "$test_folded"
+echo ''
+
+# 採番衝突の検出（安全網。→ 12 採番の衝突と直列化）
+# 名前空間ID（AC-<slug>-<n>）では衝突は構造的に起きないはずだが、万一
+# slugの使い回し等で同一AC-IDが2つ以上の別 .feature に現れたら異常として報告する。
+# co-location + 追記型では各AC-IDはただ1つの .feature でだけ定義されるのが正。
+collision=$(awk '{ f[$1]=f[$1] " " $2; n[$1]++ }
+                 END { for (id in f) {
+                         c=0; split(f[id],a," "); delete seen;
+                         for (i in a) if (!seen[a[i]]++) c++;
+                         if (c>1) print id "\t" substr(f[id],2) } }' "$feature_list" | sort -n)
+if [ -n "$collision" ]; then
+    echo '【重大】同一AC-IDが複数の .feature に定義（採番衝突の候補。マージ直前の振り直し漏れ）:'
+    printf '%s\n' "$collision" | while IFS="$(printf '\t')" read -r id files; do
+        printf '  AC-%s  <- %s\n' "$id" "$files"
+    done
+else
+    echo '採番衝突（同一ACの複数定義）: なし'
+fi
