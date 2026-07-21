@@ -2,6 +2,15 @@
 
 [SDD全体フロー](../正式ドキュメント/SDD全体フロー.md) を Claude Code 上で実行するためのプラグイン。スキル・エージェント・フックを任意のプロジェクトに展開する。
 
+## 前提：シェル（`bash`）と `git`
+
+フック／スクリプトは **POSIX sh + git のみに依存**する（`jq` は在れば使うが必須ではない）。write-once ガード（`hooks/hooks.json`）は `bash` でスクリプトを起動するため、**`bash` が PATH から到達できること**が前提。
+
+- **Linux / macOS / DevContainer（Linuxベース）**：`sh`/`bash` は標準で存在。通常は何もしなくてよい。
+- **Windows**：Git for Windows 同梱の `bash.exe`（`<Git>\bin\bash.exe` か `<Git>\usr\bin\bash.exe`）が PATH に必要。`git` は通るのに `bash` が無い場合、`<Git>\cmd` だけを PATH に通し `<Git>\bin` を通していないのが典型。`bash --version` が通れば OK。
+
+> **重要**：`bash` が PATH に無いと、フック起動が失敗して **write-once ガードが黙って無効になる**（作業は進むがマージ済みスナップショットが保護されない）。`/sdd:init` は導入時に bash 到達性をプローブし、無効なら大声で警告する。
+
 ## インストール（各プロジェクトで）
 
 Claude Code のセッション内で：
@@ -90,6 +99,6 @@ docs/
 
 ## 注意
 
-- フック/スクリプトは **POSIX sh + git のみに依存**。Windows / macOS / Linux / DevContainer で同じものが動く（Windows では Git 同梱の `bash` が使われる）。
+- フック/スクリプトは **POSIX sh + git のみに依存**し、単一実装が Windows / macOS / Linux / DevContainer で動く。前提となる `bash` の到達性は冒頭「前提：シェル」節を参照（Windows では Git 同梱の `bash` が使われる）。
 - フックは「デフォルトブランチに存在する＝マージ済み」をもって凍結と判定する。マージ前の同一ブランチ内では自由に手戻りできる（レビューゲート＝コミットポイントの方針どおり）。
 - 方法論そのものの根拠は壁打ちドキュメント 003〜008 を参照。
