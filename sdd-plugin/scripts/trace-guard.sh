@@ -11,6 +11,11 @@
 #   3. check-traceability.sh が「テストの無いAC」を報告した
 #
 # 判定不能な場合は常に沈黙する（fail-open）。依存は git と POSIX 標準コマンドのみ。
+#
+# 【性能】毎ターン走るので、ここと check-traceability.sh のプロセス数がそのまま
+# ターン終了の待ち時間になる（Windows では 1プロセス 80〜150ms）。
+# 本体は --missing-only で呼び、規律チェック（design.md / implements: / supersede）は
+# 走らせない。それらは /sdd:trace 側だけの関心事。
 
 raw=$(cat)
 
@@ -21,33 +26,34 @@ esac
 
 script_dir=$(dirname "$0")
 
-# --- 1. .feature が追跡下にあるか -------------------------------------------
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
-git ls-files -- '*.feature' 2>/dev/null | head -n 1 | grep -q . || exit 0
-
-# --- 2. ブランチ差分にテストファイルが含まれるか ------------------------------
+# --- 1. ブランチ基点を求める（refの探索は for-each-ref 1回で済ませる）---------
+# 非gitリポジトリならここが空になり、そのまま沈黙する。
+# 「.feature が追跡下にあるか」は別途見ない：無ければ 3. が何も返さないので同じこと。
 base=''
-for ref in origin/HEAD origin/main origin/master main master; do
-    if git rev-parse --verify --quiet "$ref" >/dev/null 2>&1; then
-        base=$(git merge-base HEAD "$ref" 2>/dev/null) && [ -n "$base" ] && break
-    fi
+for sha in $(git for-each-ref --format='%(refname:short) %(objectname)' \
+                refs/remotes/origin/HEAD refs/remotes/origin/main refs/remotes/origin/master \
+                refs/heads/main refs/heads/master 2>/dev/null \
+             | awk '{ sha[$1] = $2 }
+                    END { split("origin/HEAD origin/main origin/master main master", pref, " ")
+                          for (i = 1; i <= 5; i++) { r = pref[i]
+                              if ((r in sha) && !seen[sha[r]]++) print sha[r] } }'); do
+    base=$(git merge-base HEAD "$sha" 2>/dev/null) && [ -n "$base" ] && break
 done
 [ -n "$base" ] || exit 0
 
-changed=$(git diff --name-only "$base" 2>/dev/null; git diff --name-only 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
-# check-traceability.sh と同じ「テストらしきファイル」判定を使う
-printf '%s\n' "$changed" \
-    | grep -Eq '(^|/)(tests?|spec|__tests__)(/|\.)|(test|spec|Tests?)\.[a-z]+$|(^|/)test_[^/]+$' || exit 0
+# --- 2. ブランチ差分にテストファイルが含まれるか ------------------------------
+# `git diff <commit>` は作業ツリーと commit の比較なので、staged/unstaged の両方を含む。
+# 追跡外の新規テストだけ ls-files --others で足す。
+# check-traceability.sh と同じ「テストらしきファイル」判定を使う（grep 版なのでバックスラッシュは1つ）
+{ git diff --name-only "$base" 2>/dev/null
+  git ls-files --others --exclude-standard 2>/dev/null
+} | grep -Eq '(^|/)(tests?|spec|__tests__)(/|\.)|(test|spec|Tests?)\.[a-z]+$|(^|/)test_[^/]+$' || exit 0
 
 # --- 3. テストの無いAC が残っているか ---------------------------------------
-out=$(sh "$script_dir/check-traceability.sh" 2>/dev/null) || exit 0
+# --missing-only は「【重大】…」見出し＋AC行、または「テストの無いAC: なし」だけを返す
+out=$(sh "$script_dir/check-traceability.sh" --missing-only 2>/dev/null) || exit 0
 
-# 「【重大】テストの無いAC」見出しから、次の空行までの AC 行を拾う
-missing=$(printf '%s\n' "$out" | awk '
-    /^【重大】テストの無いAC/ { grab=1; next }
-    grab && /^ *AC-/ { gsub(/^ +/, ""); sub(/ +<-.*/, ""); print }
-    grab && !/^ *AC-/ { grab=0 }
-')
+missing=$(printf '%s\n' "$out" | sed -n 's/^  *\(AC-[a-z0-9-]*\)  *<-.*/\1/p')
 [ -n "$missing" ] || exit 0
 
 ids=$(printf '%s\n' "$missing" | tr '\n' ' ' | sed 's/ *$//')

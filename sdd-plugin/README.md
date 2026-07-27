@@ -115,7 +115,7 @@ Claude Code のセッション内で（GitHub 経由が基本）：
 | ゲート前セルフチェック（要件/設計） | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
 | ゲート前セルフチェック（テスト妥当性） | `sdd-test-reviewer` エージェント（実テストを読む・実行しない。人間ゲートの代替ではない） |
 | write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
-| trace 実行忘れの検知 | `hooks/hooks.json` ＋ `scripts/trace-guard.sh` — Stop フック。実装済みの作業単位で「テストの無いAC」が残っていたら警告（ブロックしない） |
+| trace 実行忘れの検知 | `hooks/hooks.json` ＋ `scripts/trace-guard.sh` — Stop フック。実装済みの作業単位で「テストの無いAC」が残っていたら警告（ブロックしない）。毎ターン走るので `check-traceability.sh --missing-only` の軽量経路だけを使う（発火時 約2秒／非発火時 約1秒） |
 
 ## 各プロジェクトに生まれる構造（/sdd:init 後）
 
