@@ -104,3 +104,95 @@ if [ -n "$collision" ]; then
 else
     echo '採番衝突（同一ACの複数定義）: なし'
 fi
+echo ''
+
+# ---------------------------------------------------------------------------
+# 規律チェック（ID宣言の抜け）
+#
+# 以下3つは以前 /sdd:trace の「AIレビュー（全文検索ベース）」として
+# AIに毎回 Grep 探索させていたが、いずれも純粋な grep 判定なのでここに機械化した。
+# skill 側は本スクリプトの出力を報告するだけでよく、独自探索は行わない
+# （メインセッションのコンテキストを食う割に発見が機械判定と同じだったため）。
+# ---------------------------------------------------------------------------
+
+# --- A. design.md の節に上流ID宣言が無い -------------------------------------
+# 規約: `## <見出し> [REQ-<slug>-<n>, AC-<slug>-<n>]`（下流が上流を自分の本文に書く）
+: > "$work/nodecl"
+printf '%s\n' "$tracked" | grep -E '(^|/)units/[^/]+/design\.md$' | while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    # コードフェンス内の "## " はMarkdown見出しではないので除外する
+    awk -v file="$f" '
+        /^```/ { fence = !fence; next }
+        fence { next }
+        /^## / { if ($0 !~ /(REQ|AC)-[a-z0-9]+-[0-9]+/) print file "\t" $0 }
+    ' "$f" >> "$work/nodecl"
+done
+if [ -s "$work/nodecl" ]; then
+    echo '【注意】上流ID宣言の無い design.md の節（逆引き検索にヒットしなくなる）:'
+    while IFS="$(printf '\t')" read -r f heading; do
+        printf '  %s  <- %s\n' "$heading" "$f"
+    done < "$work/nodecl"
+else
+    echo 'design.md の節のID宣言漏れ: なし'
+fi
+echo ''
+
+# --- B. 変更ソースファイルの implements: 宣言漏れ -----------------------------
+# デフォルトブランチとの差分に含まれる「テストでもドキュメントでもない」ファイルの
+# 先頭コメントに `implements:` があるか。ブランチ基点が取れないときは黙って飛ばす。
+base=''
+for ref in origin/HEAD origin/main origin/master main master; do
+    if git rev-parse --verify --quiet "$ref" >/dev/null 2>&1; then
+        base=$(git merge-base HEAD "$ref" 2>/dev/null) && [ -n "$base" ] && break
+    fi
+done
+if [ -n "$base" ]; then
+    : > "$work/noimpl"
+    { git diff --name-only "$base" 2>/dev/null
+      git diff --name-only 2>/dev/null
+      git ls-files --others --exclude-standard 2>/dev/null
+    } | sort -u | while IFS= read -r f; do
+        [ -n "$f" ] && [ -f "$f" ] || continue
+        case "$f" in
+            *.md|*.feature|*.json|*.yml|*.yaml|*.toml|*.txt|*.lock) continue ;;
+        esac
+        # テストファイルは対象外（implements: はプロダクションコード側の規約）
+        printf '%s' "$f" | grep -Eq '(^|/)(tests?|spec|__tests__)(/|\.)|(test|spec|Tests?)\.[a-z]+$|(^|/)test_[^/]+$' && continue
+        # 先頭20行（shebang・license ヘッダ・import 前のコメント帯）を見る
+        head -n 20 "$f" 2>/dev/null | grep -q 'implements:' || printf '%s\n' "$f" >> "$work/noimpl"
+    done
+    if [ -s "$work/noimpl" ]; then
+        echo '【注意】先頭に implements: 宣言の無い変更ソースファイル:'
+        sed 's/^/  /' "$work/noimpl"
+    else
+        echo '変更ソースの implements: 宣言漏れ: なし'
+    fi
+else
+    echo '変更ソースの implements: 宣言漏れ: 判定不能（ブランチ基点が取れないためスキップ）'
+fi
+echo ''
+
+# --- C. supersede 済みの旧AC-IDをまだ担いでいるテスト --------------------------
+# living テストは常に最新IDを担ぐ。旧IDはスナップショット内にだけ残るのが正。
+superseded=$(printf '%s\n' "$tracked" \
+    | grep -E '(^|/)units/[^/]+/requirements\.md$' \
+    | while IFS= read -r f; do
+          [ -f "$f" ] || continue
+          grep -h 'supersedes:' "$f" 2>/dev/null | grep -oE 'AC-[a-z0-9]+-[0-9]+'
+      done | sed 's/^AC-//' | sort -u)
+if [ -n "$superseded" ]; then
+    printf '%s\n' "$superseded" | sed '/^$/d' | sort > "$work/lhs"
+    cut -d' ' -f1 "$test_list" | sort -u > "$work/rhs"
+    stale=$(comm -12 "$work/lhs" "$work/rhs")
+    if [ -n "$stale" ]; then
+        echo '【注意】supersede 済みの旧AC-IDをまだ参照しているテスト（新IDへ付け替える）:'
+        printf '%s\n' "$stale" | while IFS= read -r id; do
+            files=$(printf '%s\n' "$test_folded" | awk -F'\t' -v i="$id" '$1==i { print $2 }')
+            printf '  AC-%s  <- %s\n' "$id" "$files"
+        done
+    else
+        echo 'supersede 済み旧IDを担ぐテスト: なし'
+    fi
+else
+    echo 'supersede 済み旧IDを担ぐテスト: なし（supersedes 宣言そのものが無い）'
+fi
