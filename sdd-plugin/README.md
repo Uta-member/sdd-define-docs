@@ -9,7 +9,18 @@
 - **Linux / macOS / DevContainer（Linuxベース）**：`sh`/`bash` は標準で存在。通常は何もしなくてよい。
 - **Windows**：Git for Windows 同梱の `bash.exe`（`<Git>\bin\bash.exe` か `<Git>\usr\bin\bash.exe`）が PATH に必要。`git` は通るのに `bash` が無い場合、`<Git>\cmd` だけを PATH に通し `<Git>\bin` を通していないのが典型。`bash --version` が通れば OK。
 
-> **重要**：`bash` が PATH に無いと、フック起動が失敗して **write-once ガードが黙って無効になる**（作業は進むがマージ済みスナップショットが保護されない）。`/sdd:init` は導入時に bash 到達性をプローブし、無効なら大声で警告する。
+> **重要**：`bash` が PATH に無いと、フック起動が失敗して **write-once ガードと trace ガードが黙って無効になる**（作業は進むがマージ済みスナップショットが保護されず、回帰網の穴も検知されない）。`/sdd:init` は導入時に bash 到達性をプローブし、無効なら大声で警告する。
+
+## 設計方針：強調語ではなく仕組みで縛る
+
+**交渉不可なのは2つだけ**——(1) 要件定義の人間承認を得るまで下流に進まない、(2) 受入レベルの振る舞いを living 統合テストに吸収する。文書中で `【不変条件】` と記した箇所がこれにあたる。
+
+それ以外の手順は通常の指示として書く。すべてを「必須」「絶対」と書くと本当に守るべき2つが埋没するため、強調語は意図的に絞っている。そのぶん、守らせたいものは**プロンプトの強さではなくフックで担保する**：
+
+| 守るもの | 担保する仕組み | ブロック |
+|---|---|---|
+| マージ済みスナップショットの write-once | PreToolUse フック `scripts/guard-frozen.sh` | する |
+| 回帰網の穴（テストの無いAC）の検知 | Stop フック `scripts/trace-guard.sh` | しない（警告のみ） |
 
 ## インストール（各プロジェクトで）
 
@@ -78,13 +89,14 @@ Claude Code のセッション内で（GitHub 経由が基本）：
 | 2. 詳細設計 → 人間ゲート（軽め） | `/sdd:design` — 局所アーキ・ADR・ゲートで停止 |
 | 3. 実装タスク作成（廃棄可能） | `/sdd:tasks` |
 | 4. 実装 | `/sdd:implement` — 受入振る舞いを統合テストに吸収、`test_AC_xxx` 命名 |
-| 4b. テスト妥当性ゲート → 人間ゲート（軽め・ブロック） | `sdd-test-reviewer` エージェント — 実テストと.featureを突き合わせ、空虚なテスト・期待値の実装由来（curve-fitting）・網羅の穴を検出。生命線なので通過必須 |
+| 4b. テスト妥当性ゲート → 人間ゲート（軽め・ブロック） | `sdd-test-reviewer` エージェント — 実テストと.featureを突き合わせ、空虚なテスト・期待値の実装由来（curve-fitting）・網羅の穴を検出。accept はこの通過が前提 |
 | 5. 受入テスト | `/sdd:accept` — エビデンス凍結・tasks.md削除・PR仕上げ |
 | トレーサビリティ（随時） | `/sdd:trace` ＋ `scripts/check-traceability.sh` |
 | 現在仕様書の再生成（必要時） | `/sdd:regen` |
 | ゲート前セルフチェック（要件/設計） | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
 | ゲート前セルフチェック（テスト妥当性） | `sdd-test-reviewer` エージェント（実テストを読む・実行しない。人間ゲートの代替ではない） |
 | write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
+| trace 実行忘れの検知 | `hooks/hooks.json` ＋ `scripts/trace-guard.sh` — Stop フック。実装済みの作業単位で「テストの無いAC」が残っていたら警告（ブロックしない） |
 
 ## 各プロジェクトに生まれる構造（/sdd:init 後）
 

@@ -41,13 +41,13 @@ description: SDD（仕様駆動開発）をこのプロジェクトに導入す�
 - **無い場合**：CLAUDE.md 末尾に追記（CLAUDE.md自体が無ければ新規作成）。
 - マーカー外の既存記述には一切触れない。
 
-### 5. bash 到達性のプローブ（write-once ガードの前提確認）
-write-once ガード（`hooks/hooks.json`）は `bash` でスクリプトを起動する。bash が PATH に無いとフック起動自体が失敗し、**ガードが黙って無効になる**（スクリプト内の fail-open はそのさらに内側の話で、ここには到達しない）。導入時に一度だけ、フックが打つのと同じ `bash` を実際に起動して確認する。
+### 5. bash 到達性のプローブ（フックの前提確認）
+2つのフック（`hooks/hooks.json`：write-once ガードと trace ガード）は `bash` でスクリプトを起動する。bash が PATH に無いとフック起動自体が失敗し、**両方が黙って無効になる**（スクリプト内の fail-open はそのさらに内側の話で、ここには到達しない）。導入時に一度だけ、フックが打つのと同じ `bash` を実際に起動して確認する。
 
 - `bash -c "exit 0"` を実行する（＝フックの起動経路の到達性を確認）。
-- **成功**：ガードは有効。何も追加で言わなくてよい。
+- **成功**：両ガードとも有効。何も追加で言わなくてよい。
 - **失敗／bash が見つからない**：セットアップは**中断しない**（docsスケルトン・CLAUDE.md展開はそのまま完了させる）。ただし報告で**大声で**次を伝える：
-  - 「**write-once ガードは現在無効です。bash を PATH に通すまで有効化されません。**」
+  - 「**write-once ガードと trace ガードは現在無効です。bash を PATH に通すまで有効化されません。**」
   - 環境別の対処：
     - Linux / macOS / DevContainer（Linuxベース）：通常は `sh`/`bash` があるので、この失敗はまれ。コンテナが極端に最小構成なら bash を入れる。
     - Windows：Git for Windows 同梱の `bash.exe`（`<Git>\bin\bash.exe` か `<Git>\usr\bin\bash.exe`）を PATH に通す。`git` が通って `bash` が無いのは「`<Git>\cmd` だけ通し `<Git>\bin` を通していない」典型パターン。`bash --version` が通れば解消。

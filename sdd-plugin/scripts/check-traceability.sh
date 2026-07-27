@@ -80,7 +80,7 @@ report() {
     fi
 }
 
-report "【重大】テストの無いAC（回帰の穴の候補。統合テストへの吸収が絶対条件）:" \
+report "【重大】テストの無いAC（回帰の穴の候補。統合テストへの吸収は【不変条件】）:" \
        "テストの無いAC: なし" "$feature_ids" "$test_ids" "$feature_folded"
 echo ''
 report "【注意】.feature に存在しないACを参照するテスト（タグ漏れ or 廃止済みIDの残骸）:" \
