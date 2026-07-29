@@ -1,7 +1,13 @@
 #!/usr/bin/env sh
 # SDD 発見的チェック: .feature の @AC タグとテストコードの AC 参照の乖離を報告する。
-# ブロックしない補助ツール。git管理下のファイルのみを対象にする。
+# ブロックしない補助ツール。git管理下のファイル + 未トラックの新規ファイル（.gitignore対象は除く）を対象にする。
 # 依存は git と POSIX 標準コマンドのみ。
+#
+# 【未トラックファイルも対象】新規ユニットは実装/テストが git add される前に
+# /sdd:trace や trace-guard.sh から呼ばれることが多い。git grep はデフォルトで
+# 追跡済みファイルしか見ないため、素の `git grep` だと新規ファイルのACが
+# 「テストの無いAC」に誤検知される。`--untracked` を付けて回避する
+#（.gitignore 対象は従来どおり除外される）。
 #
 # 使い方:
 #   check-traceability.sh                 全6項目を報告する（/sdd:trace 用）
@@ -44,7 +50,7 @@ test_path_re='(^|/)(tests?|spec|__tests__)(/|\\.)|(test|spec|Tests?)\\.[a-z]+$|(
 # --- AC参照の収集：リポジトリ全体を git grep 一発でなめて awk で仕分ける ------
 # .feature 側は @AC-<slug>-<n>（'@' 必須）、テスト側は AC-<slug>-<n> / AC_<slug>_<n>。
 # 先に '@?' を付けた1本のパターンで拾い、パスを見て振り分ける。
-git grep -I --no-color -oE '@?AC[-_][a-z0-9]+[-_][0-9]+' 2>/dev/null | awk \
+git grep -I --no-color --untracked -oE '@?AC[-_][a-z0-9]+[-_][0-9]+' 2>/dev/null | awk \
     -v tre="$test_path_re" -v flist="$feature_list" -v tlist="$test_list" '
     {
         # "<path>:<match>" を最後の ":" で割る（パスに ":" があっても壊れないように）
@@ -155,7 +161,7 @@ sort -u -o "$frozen_paths" "$frozen_paths"
 # Edit/Write を deny するため、宣言漏れを指摘しても構造的に直せない。ユニットが増える
 # ほど積み増して、唯一重要な「テストの無いAC」のシグナルを希釈するだけになる。
 # よって未凍結（＝デフォルトブランチにまだ存在しない）design.md だけを見る。
-git ls-files -- 'units/*/design.md' '*/units/*/design.md' 2>/dev/null | sort -u > "$work/design_all"
+git ls-files --cached --others --exclude-standard -- 'units/*/design.md' '*/units/*/design.md' 2>/dev/null | sort -u > "$work/design_all"
 comm -23 "$work/design_all" "$frozen_paths" > "$work/design_live"
 frozen_design=$(( $(wc -l < "$work/design_all") - $(wc -l < "$work/design_live") ))
 
@@ -223,7 +229,7 @@ echo ''
 
 # --- C. supersede 済みの旧AC-IDをまだ担いでいるテスト --------------------------
 # living テストは常に最新IDを担ぐ。旧IDはスナップショット内にだけ残るのが正。
-git grep -I --no-color -hoE 'supersedes:.*' -- 'units/*/requirements.md' '*/units/*/requirements.md' 2>/dev/null \
+git grep -I --no-color --untracked -hoE 'supersedes:.*' -- 'units/*/requirements.md' '*/units/*/requirements.md' 2>/dev/null \
     | grep -oE 'AC-[a-z0-9]+-[0-9]+' | sed 's/^AC-//' | sort -u > "$work/sup"
 if [ -s "$work/sup" ]; then
     awk -F'\t' -v exfile="$work/sup" '
