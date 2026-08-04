@@ -125,8 +125,8 @@ Claude Code のセッション内で（GitHub 経由が基本）：
 CLAUDE.md                       ← SDDルール節（マーカー管理・再実行で更新可）
 docs/
   architecture.md               ← living（唯一維持する散文）
-  adr/ADR-<slug>-<n>-<title>.md ← 不変・supersedeで追記（slugで名前空間化）
-  units/<スラッグ>/              ← 作業単位スナップショット（開始日は requirements.md 冒頭に記録）
+  adr/YYYY-MM-DD-ADR-<slug>-<n>-<title>.md ← 不変・supersedeで追記（IDは日付を含めない。日付接頭辞は作成時系列に並べる表示専用）
+  units/<開始日時>-<スラッグ>/     ← 作業単位スナップショット（日時接頭辞は実施順復元用の表示専用。開始日は requirements.md 冒頭にも記録）
     requirements.md             ← REQ/AC定義（write-once）
     design.md                   ← 詳細設計（write-once）
     evidence.md                 ← 受入結果（write-once）
