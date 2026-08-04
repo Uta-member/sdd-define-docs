@@ -241,3 +241,39 @@ if [ -s "$work/sup" ]; then
 else
     echo 'supersede 済み旧IDを担ぐテスト: なし（supersedes 宣言そのものが無い）'
 fi
+echo ''
+
+# --- D. docs/units 配下の相対リンク切れ ---------------------------------------
+# 他ユニットへの相互参照は `../<ディレクトリ名>/...` の相対リンクで書かれる。
+# ディレクトリ名がslugと一致するとは限らない（プロジェクトが日時プレフィックス等の
+# 命名規約を採用している場合）ため、slugを決め打ちしたリンクは容易にリンク切れになる。
+# 【凍結済みも対象】design.md のID宣言漏れと違い、リンク切れは「別unitのディレクトリ名
+# 変更」等で後から壊れることもあり、凍結済みでも報告価値がある（直せなくても人間が
+# 手当てするかを判断できるように）。
+units_md=$(git ls-files --cached --others --exclude-standard -- 'units/*/*.md' '*/units/*/*.md' 2>/dev/null | sort -u)
+
+: > "$work/brokenlinks"
+if [ -n "$units_md" ]; then
+    printf '%s\n' "$units_md" | while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        dir=$(dirname "$f")
+        grep -noE '\]\([^)]+\)' "$f" 2>/dev/null | while IFS=: read -r lineno rest; do
+            link=${rest#\]\(}
+            link=${link%\)}
+            case "$link" in
+                ''|http://*|https://*|mailto:*|\#*) continue ;;
+            esac
+            link=${link%%#*}
+            [ -n "$link" ] || continue
+            target="$dir/$link"
+            [ -e "$target" ] || printf '%s:%s\t%s\n' "$f" "$lineno" "$link" >> "$work/brokenlinks"
+        done
+    done
+fi
+
+if [ -s "$work/brokenlinks" ]; then
+    echo '【注意】docs/units 配下のリンク切れ（相対パスが実在しない。ディレクトリ名の決め打ちを疑う）:'
+    sed 's/^/  /' "$work/brokenlinks"
+else
+    echo 'docs/units 配下のリンク切れ: なし'
+fi
