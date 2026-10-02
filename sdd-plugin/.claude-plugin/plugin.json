@@ -1,7 +1,7 @@
 {
   "name": "sdd",
   "description": "SDD（仕様駆動開発）全体フローを任意のプロジェクトで実行するためのスキル・エージェント・フック集。/sdd:init でプロジェクトに導入し、/sdd:req → /sdd:design → /sdd:tasks → /sdd:implement → /sdd:accept の機能サイクルを回す。",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": {
     "name": "Uta Sugane"
   }
