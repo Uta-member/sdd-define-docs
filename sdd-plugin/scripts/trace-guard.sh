@@ -16,6 +16,10 @@
 # ターン終了の待ち時間になる（Windows では 1プロセス 80〜150ms）。
 # 本体は --missing-only で呼び、規律チェック（design.md / implements: / supersede）は
 # 走らせない。それらは /sdd:trace 側だけの関心事。
+#
+# 【非ASCIIパス】git は既定（core.quotepath=true）で日本語などを含むパスを引用符付きの
+# 8進エスケープで出力し、テストファイル判定が外れる。git 呼び出しはこの関数を通す。
+git() { command git -c core.quotepath=false "$@"; }
 
 raw=$(cat)
 

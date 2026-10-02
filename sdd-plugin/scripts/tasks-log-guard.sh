@@ -9,6 +9,10 @@
 # ブロックはしない（systemMessage で促すだけ）。判定不能なら常に沈黙する（fail-open）。
 #
 # 【性能】毎ターン走る。git 2〜3回 + ls 1回に抑える。
+#
+# 【非ASCIIパス】git は既定（core.quotepath=true）で日本語などを含むパスを引用符付きの
+# 8進エスケープで出力し、ls で実ファイルを引けなくなる。git 呼び出しはこの関数を通す。
+git() { command git -c core.quotepath=false "$@"; }
 
 raw=$(cat)
 

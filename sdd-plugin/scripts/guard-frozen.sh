@@ -3,6 +3,10 @@
 # 対象: docs配下の units/ と adr/、および *.feature のうち、デフォルトブランチに既に存在するファイル。
 # 判定不能な場合は常に許可（fail-open）。stdin に Claude Code のフックJSONを受け取る。
 # 依存は git と POSIX 標準コマンドのみ（Windows は Git 同梱の bash で動作する）。
+#
+# 【非ASCIIパス】git は既定（core.quotepath=true）で日本語などを含むパスを引用符付きの
+# 8進エスケープで出力し、パス判定と cat-file が外れて素通しになる。git 呼び出しはこの関数を通す。
+git() { command git -c core.quotepath=false "$@"; }
 
 raw=$(cat)
 [ -n "$raw" ] || exit 0

@@ -24,6 +24,12 @@
 # 「ファイルごと」「AC-IDごと」にコマンドを起こす構造を書くと即座に数十秒に膨らむ
 # （実際、per-file grep 版は実測 33 秒だった）。走査は git grep 一発、集計は awk 一発に
 # まとめること。ループを足したくなったら awk の中に入れる。
+#
+# 【非ASCIIパス】git は既定（core.quotepath=true）で日本語などを含むパスを
+# 引用符付きの8進エスケープで出力する。これでは拡張子・ディレクトリによるパス判定や
+# 実ファイルとの突き合わせが全部外れる（日本語名の .feature を読み落とし
+# 「テストの無いAC：なし」と誤表示した実例あり）。git 呼び出しはすべてこの関数を通す。
+git() { command git -c core.quotepath=false "$@"; }
 
 mode=full
 [ "$1" = '--missing-only' ] && mode=missing
