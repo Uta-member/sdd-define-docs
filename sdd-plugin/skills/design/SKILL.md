@@ -20,8 +20,8 @@ description: SDD機能サイクル②詳細設計。承認済みの要件とAC�
 
 ### 2. 設計判断（Why）をADRに記録
 - 迷って選んだこと・トレードオフのある判断は `{DOCS_DIR}/adr/YYYY-MM-DD-ADR-<unit-slug>-<n>-<title>.md` に記録する（作成日を接頭辞に付け、`{DOCS_DIR}/adr/` を一覧したとき作成時系列に並ぶようにする。IDは `ADR-<unit-slug>-<n>` で日付を含めない——この作業単位のslugで名前空間化し、連番はunitローカルに1始まり。ファイル名にslugが入るので別unitのADRと衝突しない。→ 採番の衝突と直列化）。
-- ヘッダに関連IDを書く：`ADR-checkout-1 / 関連: REQ-checkout-1`。
-- ADRは不変。過去の判断を変えるときは新規ADRで `supersedes: ADR-login-1`。
+- ヘッダに関連IDと状態を書く：`ADR-checkout-1 / 関連: REQ-checkout-1`、その下に**1行で** `- **状態**: 提案`（提案／承認／廃止／置換（ADR-xxx-n により））。
+- ADRは不変。過去の判断を変えるときは新規ADRで `supersedes: ADR-login-1`。**例外は状態行だけ**：マージ後も `状態:` 行は Edit で1行単位に書き換えてよい（`guard-frozen.sh` がこの行の変更だけを通す）。supersede したら旧ADRの状態を `置換（ADR-checkout-2 により）` に更新する。
 
 ### 3. 人間レビューゲート（軽め）で停止
 - 設計の要点（構成・主要判断・インフラ影響の有無）を短く提示し、確認を依頼して停止する。

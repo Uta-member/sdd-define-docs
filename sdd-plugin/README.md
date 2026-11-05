@@ -117,7 +117,7 @@ Claude Code のセッション内で（GitHub 経由が基本）：
 | 現在仕様書の再生成（必要時） | `/sdd:regen` |
 | ゲート前セルフチェック（要件/設計） | `sdd-gate-reviewer` エージェント（人間ゲートの代替ではない） |
 | ゲート前セルフチェック（テスト妥当性） | `sdd-test-reviewer` エージェント（実テストを読む・実行しない。人間ゲートの代替ではない） |
-| write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック |
+| write-once の強制 | `hooks/hooks.json` ＋ `scripts/guard-frozen.sh` — マージ済みスナップショット（docs/units・docs/adr・*.feature）への編集をブロック（ADRの `状態:` 行の1行Editだけは例外で許可） |
 | trace 実行忘れの検知 | `hooks/hooks.json` ＋ `scripts/trace-guard.sh` — Stop フック。実装済みの作業単位で「テストの無いAC」が残っていたら警告（ブロックしない）。毎ターン走るので `check-traceability.sh --missing-only` の軽量経路だけを使う（発火時 約2秒／非発火時 約1秒） |
 | tasks.md の陳腐化の検知 | `hooks/hooks.json` ＋ `scripts/tasks-log-guard.sh` — Stop フック。ブランチ差分のコード/テストが tasks.md より新しければ警告（ブロックしない）。`/clear` を挟んでも進捗・見つかった問題・次の一手が残る状態を保つのが狙い |
 
@@ -127,7 +127,7 @@ Claude Code のセッション内で（GitHub 経由が基本）：
 CLAUDE.md                       ← SDDルール節（マーカー管理・再実行で更新可）
 docs/
   architecture.md               ← living（唯一維持する散文）
-  adr/YYYY-MM-DD-ADR-<slug>-<n>-<title>.md ← 不変・supersedeで追記（IDは日付を含めない。日付接頭辞は作成時系列に並べる表示専用）
+  adr/YYYY-MM-DD-ADR-<slug>-<n>-<title>.md ← 不変・supersedeで追記・`状態:` 行のみ更新可（IDは日付を含めない。日付接頭辞は作成時系列に並べる表示専用）
   units/<開始日時>-<スラッグ>/     ← 作業単位スナップショット（日時接頭辞は実施順復元用の表示専用。開始日は requirements.md 冒頭にも記録）
     requirements.md             ← REQ/AC定義（write-once）
     design.md                   ← 詳細設計（write-once）

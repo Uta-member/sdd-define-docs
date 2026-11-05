@@ -45,7 +45,41 @@ for ref in origin/HEAD origin/main origin/master main master; do
 done
 [ "$frozen" -eq 1 ] || exit 0
 
-reason="[SDD] ${rel} はマージ済みのスナップショット（write-once）のため変更できません。振る舞いを変える場合は新しい作業単位で新IDを採番し、supersedes 宣言で置き換えてください（/sdd:req）。"
+# 【例外】マージ済みADRの「状態」行だけは Edit で書き換えてよい（提案→承認→廃止/置換 の運用のため）。
+# 条件: ADR領域 / Edit ツール / replace_all でない / old_string・new_string がともに1行で
+# 「状態:」「ステータス:」「Status:」（箇条書き記号・太字可）で始まる / ファイル内に old_string で始まる行が実在する。
+# 1つでも満たさなければ通常どおり deny（例外側は fail-closed）。
+json_str() {
+    # $1 のキーの JSON 文字列値を（エスケープされたまま）取り出す
+    if command -v jq >/dev/null 2>&1; then
+        printf '%s' "$raw" | jq -r --arg k "$1" '.tool_input[$k] // empty | tojson | .[1:-1]' 2>/dev/null
+    else
+        printf '%s' "$raw" | sed -nE "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"(([^\"\\\\]|\\\\.)*)\".*/\\1/p" | head -n 1
+    fi
+}
+is_status_line() {
+    # 改行エスケープを含まない1行で、状態キーで始まる
+    case "$1" in *'\n'*|*'\r'*) return 1 ;; esac
+    printf '%s' "$1" | grep -Eq '^[[:space:]]*([-*][[:space:]]*)?(\*\*)?(状態|ステータス|[Ss]tatus)(\*\*)?[[:space:]]*(:|：)'
+}
+if printf '%s' "$rel" | grep -Eq '(^|/)docs?/adr/'; then
+    tool=$(printf '%s' "$raw" | sed -nE 's/.*"tool_name"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' | head -n 1)
+    old=$(json_str old_string)
+    new=$(json_str new_string)
+    if [ "$tool" = "Edit" ] \
+        && ! printf '%s' "$raw" | grep -Eq '"replace_all"[[:space:]]*:[[:space:]]*true' \
+        && is_status_line "$old" && is_status_line "$new"; then
+        # JSON エスケープ（\" と \\）を戻し、先頭空白を除いてファイルの行頭と照合する
+        old_plain=$(printf '%s' "$old" | sed -e 's/\\"/"/g' -e 's/\\\\/\\/g' -e 's/^[[:space:]]*//')
+        if S="$old_plain" awk 'BEGIN { s = ENVIRON["S"] }
+            { l = $0; sub(/\r$/, "", l); sub(/^[ \t]+/, "", l); if (index(l, s) == 1) f = 1 }
+            END { exit !f }' "$file_path" 2>/dev/null; then
+            exit 0
+        fi
+    fi
+fi
+
+reason="[SDD] ${rel} はマージ済みのスナップショット（write-once）のため変更できません。振る舞いを変える場合は新しい作業単位で新IDを採番し、supersedes 宣言で置き換えてください（/sdd:req）。ADRの状態行（状態: ...）だけは Edit で1行単位なら変更できます。"
 
 if command -v jq >/dev/null 2>&1; then
     jq -n --arg reason "$reason" '{
